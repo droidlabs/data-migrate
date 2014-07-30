@@ -214,6 +214,7 @@ namespace :db do
 end
 
 namespace :data do
+  desc 'Migrate data migrations (options: VERSION=x, VERBOSE=false)'
   task :migrate => :environment do
     assure_data_schema_table
     ActiveRecord::Migration.verbose = ENV["VERBOSE"] ? ENV["VERBOSE"] == "true" : true
@@ -329,7 +330,6 @@ end
 
 def connect_to_database
   config = ActiveRecord::Base.configurations[Rails.env || 'development']
-  config = ENV['DATABASE_URL'] if config.blank?
   ActiveRecord::Base.establish_connection(config)
 
   unless ActiveRecord::Base.connection.table_exists?(DataMigrate::DataMigrator.schema_migrations_table_name)
@@ -353,7 +353,8 @@ def past_migrations sort=nil
 end
 
 def assure_data_schema_table
-  connect_to_database
+  config = ActiveRecord::Base.configurations[Rails.env || 'development'] || ENV["DATABASE_URL"]
+  ActiveRecord::Base.establish_connection(config)
   sm_table = DataMigrate::DataMigrator.schema_migrations_table_name
 
   unless ActiveRecord::Base.connection.table_exists?(sm_table)
